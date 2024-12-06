@@ -1,0 +1,43 @@
+config:
+  target: 'https://api.open-meteo.com'
+  phases:
+    - duration: 300
+      arrivalRate: 5
+      name: "Pobieranie danych pogodowych z API"
+
+scenarios:
+  - flow:
+      - get:
+          url: '/weather'
+          query:
+            latitude: 35.6895
+            longitude: 139.6917
+            current_weather: true
+          headers:
+            Accept: 'application/json'
+          capture:
+            - json: '$.current_weather'
+              as: 'currentWeather'
+
+      - post:
+          url: '/weather'
+          json:
+            latitude: '{{ latitude }}'
+            longitude: '{{ longitude }}'
+            timezone: 'auto'
+          payload:
+            # Zakładamy, że plik payload.json zawiera dane do wysłania
+            - file: 'payload.json'
+          headers:
+            Content-Type: 'application/json'
+
+      - think: 1   # Czas oczekiwania przed wykonaniem następnego żądania
+
+      - log: "Aktualna pogoda: {{ currentWeather }}"
+
+# Walidacje metryk końcowych
+metrics:
+  response_time:
+    p95: 300   # 95 percentyl czasu odpowiedzi powinien być mniejszy niż 300 ms
+    max: 500   # Maksymalny czas odpowiedzi nie powinien przekraczać 500 ms
+    mean: 200  # Średni czas odpowiedzi powinien wynosić mniej niż 200 ms
